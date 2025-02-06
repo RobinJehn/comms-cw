@@ -10,11 +10,5 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: <<-SHELL
     apt-get update
     apt-get install python3-pip -y
-    pip3 install pytest matplotlib scapy==2.5.0
-    echo "wireshark-common wireshark-common/install-setuid boolean true" | debconf-set-selections
-    apt-get install mininet tshark -y
-    git clone https://github.com/mininet/mininet
-    mininet/util/install.sh -w
-    pip3 install ryu
   SHELL
 end

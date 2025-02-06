@@ -1,3 +1,11 @@
+## Prerequisite
+
+Install scapy inside virtual machine by running
+
+```
+sudo pip3 install pytest matplotlib scapy==2.5.0
+```
+
 ## Part 1: Identifying elephant TCP flows
 
 Suppose you are a network engineer working for an Internet Service Provider

@@ -47,9 +47,8 @@ usually represent the network address part by 10.0.0.0/24.
 Let's try to get some intuition by manipulating the IPv4Address and IPv4Network
 Python objects.
 ```
-vagrant@ubuntu-focal:~$ python3.8
-Python 3.8.5 (default, Jul 28 2020, 12:59:40) 
-[GCC 9.3.0] on linux
+vagrant@ubuntu-jammy:~$ python3
+Python 3.10.12 (main, Jan 17 2025, 14:35:34) [GCC 11.4.0] on linux
 Type "help", "copyright", "credits" or "license" for more information.
 >>> from ipaddress import ip_address, ip_network
 >>> a = ip_address('10.0.0.1')
@@ -72,9 +71,9 @@ by giving the IPv4 address with the netmask with `strict=False` flag to
 >>> na = ip_network('10.0.171.2/24')
 Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
-  File "/usr/lib/python3.8/ipaddress.py", line 74, in ip_network
+  File "/usr/lib/python3.10/ipaddress.py", line 74, in ip_network
     return IPv4Network(address, strict)
-  File "/usr/lib/python3.8/ipaddress.py", line 1454, in __init__
+  File "/usr/lib/python3.10/ipaddress.py", line 1530, in __init__
     raise ValueError('%s has host bits set' % self)
 ValueError: 10.0.171.2/24 has host bits set
 >>> na = ip_network('10.0.171.2/24', strict=False)
@@ -97,41 +96,46 @@ Please refer to the [Python3 official document](https://docs.python.org/3/librar
 ### Reading a Pcap file with Scapy
 
 We use [Scapy](https://scapy.readthedocs.io/en/latest/) tool to process the packet traces in the assignments.
+
+First we need to install Scapy
+
+```
+sudo pip3 install pytest matplotlib scapy==2.5.0
+```
+
 Scapy offers `RawPcapReader()` to read a pcap file (it can be gzip-ed), and various packet representation objects, as we can see in the below:
 ```
-vagrant@ubuntu-focal:~$ python3.8
-Python 3.8.5 (default, Jul 28 2020, 12:59:40) 
-[GCC 9.3.0] on linux
+vagrant@ubuntu-jammy:~$ python3
+Python 3.10.12 (main, Jan 17 2025, 14:35:34) [GCC 11.4.0] on linux
 Type "help", "copyright", "credits" or "license" for more information.
 >>> from ipaddress import ip_address
 >>> from scapy.utils import RawPcapReader
 >>> from scapy.layers.l2 import Ether
 >>> from scapy.layers.inet import IP, TCP
->>> pkts = [p for i, (p, m) in enumerate(RawPcapReader('202011251400-78-5k.pcap')) if i < 10]
+>>> pkts = [p for i, (p, m) in enumerate(RawPcapReader('202201031400p.pcap.gz')) if i < 10]
 ```
 The last line creates a list of 10 packet objects. Let's take a look at the Ethernet, IPv4 and TCP header of the first packet:
 ```
->>> Ether(pkts[1])
+>>> ether = Ether(pkts[1])
 >>> ether
-<Ether  dst=f0:7c:c7:11:70:54 src=64:f6:9d:19:6a:52 type=IPv4 |<IP  version=4 ihl=5 tos=0x0 len=40 id=6179 flags= frag=0 ttl=247 proto=tcp chksum=0xd5d2 src=94.153.243.18 dst=203.62.184.239 |<TCP  sport=45764 dport=58652 seq=2083224114 ack=0 dataofs=5 reserved=0 flags=S window=1024 chksum=0x47c9
-urgptr=0 |>>>
+<Ether  dst=f0:7c:c7:11:70:54 src=64:f6:9d:19:6a:52 type=IPv4 |<IP  version=4 ihl=5 tos=0x0 len=40 id=0 flags=DF frag=0 ttl=55 proto=tcp chksum=0x5c10 src=222.64.82.155 dst=133.6.49.222 |<TCP  sport=28145 dport=telnet seq=2231680516 ack=0 dataofs=5 reserved=0 flags=R window=0 chksum=0x170f urgptr=0 |>>>
 >>> ip = ether[IP]
 >>> ip
-<IP  version=4 ihl=5 tos=0x0 len=40 id=6179 flags= frag=0 ttl=247 proto=tcp chksum=0xd5d2 src=94.153.243.18 dst=203.62.184.239 |<TCP  sport=45764 dport=58652 seq=2083224114 ack=0 dataofs=5 reserved=0 flags=S window=1024 chksum=0x47c9 urgptr=0 |>>
+<IP  version=4 ihl=5 tos=0x0 len=40 id=0 flags=DF frag=0 ttl=55 proto=tcp chksum=0x5c10 src=222.64.82.155 dst=133.6.49.222 |<TCP  sport=28145 dport=telnet seq=2231680516 ack=0 dataofs=5 reserved=0 flags=R window=0 chksum=0x170f urgptr=0 |>>
 ```
 You can easily obtain the `IPv4Address` object from the string:
 ```
 >>> from ipaddress import ip_address
 >>> ip_address(ip.src)
-IPv4Address('203.62.184.243')
+IPv4Address('222.64.82.155')
 ```
 Finally, let's inspect the TCP header.
 ```
 >>> tcp = ip[TCP]
 >>> tcp
-<TCP  sport=45764 dport=58652 seq=2083224114 ack=0 dataofs=5 reserved=0 flags=S window=1024 chksum=0x47c9 urgptr=0 |>
+<TCP  sport=28145 dport=telnet seq=2231680516 ack=0 dataofs=5 reserved=0 flags=R window=0 chksum=0x170f urgptr=0 |>
 >>> tcp.sport
-45764
+28145
 ```
 
 That's it, let's move on to the assignments in [README.md](./README.md). Internet measurement has been an important research topic. You can find interesting papers at [IMC](http://www.sigcomm.org/events/imc-conference) and [SIGCOMM](http://sigcomm.org/events/sigcomm-conference).

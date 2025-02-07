@@ -77,3 +77,13 @@ In the VM console window, you can login to the VM with "vagrant" for both
 username and password.
 
 Files in the Vagrantfile directory can be seen inside the vm, which appear in `/vagrant`.
+
+### Frequent Questions
+
+#### Use VSCode with Vagrant
+
+https://stackoverflow.com/questions/55974144/how-to-set-a-remote-connection-to-a-vagrant-container-using-visual-studio-code
+
+#### Use VSCode with Lima
+
+https://github.com/lima-vm/lima/discussions/1890

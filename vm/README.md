@@ -86,4 +86,4 @@ https://stackoverflow.com/questions/55974144/how-to-set-a-remote-connection-to-a
 
 #### Use VSCode with Lima
 
-https://github.com/lima-vm/lima/discussions/1890
+https://kislow.medium.com/developing-in-lima-with-visual-studio-code-a2d4c4250e72

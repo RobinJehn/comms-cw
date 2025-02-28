@@ -15,12 +15,12 @@ All the assignment can be done inside the VM created in the following way.
    - VMWare, Virtual Box
    - Mac only: Parallels Desktop, UTM, Lima, etc.
    - Windows only: WSL installed (which means Hyper-V is enabled) or Hyper-V
-- If you have an Apple Silicon Mac, then please install Lima as hypervisor
+- If you have an Apple Silicon Mac, then please install Lima as hypervisor, [some hints here](#install-ubuntu-2204-with-lima)
 
 If you applies to either condition, we can not provide packed installtation for you, 
 else please go ahead to [next section](#linux-windows-and-intel-not-m1-mac).
 
-Please install [Ubuntu 22.04 Desktop](https://www.releases.ubuntu.com/22.04/) as 
+Please install [Ubuntu 22.04](https://www.releases.ubuntu.com/22.04/) as 
 virtual machine by yourself then run 
 ```
 sudo apt-get update
@@ -84,6 +84,11 @@ Files in the Vagrantfile directory can be seen inside the vm, which appear in `/
 
 https://stackoverflow.com/questions/55974144/how-to-set-a-remote-connection-to-a-vagrant-container-using-visual-studio-code
 
-#### Use VSCode with Lima
+### Install Ubuntu 22.04 with Lima
 
-https://kislow.medium.com/developing-in-lima-with-visual-studio-code-a2d4c4250e72
+1. Install Lima (https://lima-vm.io/docs/installation/), homebrow or binary both works fine
+2. Run `limactl create --name=comn template://ubuntu-22.04` to create the virtual machine
+3. Run `limactl start` to boot the virtual machine and `limactl shell comn` to enter the virtual machine through command line
+4. Your MacOS home folder will be mounted inside virtual machine but read-only, `/tmp/lima` will be writeable and readable on both your host and guest but it is not persistent (data lost after reboot). I would recommend to work inside your home in virtual machine, then copy out via `/tmp/lima` when need to submit.
+5. For ssh config, run `limactl show-ssh --format config`. You can refer [this](https://kislow.medium.com/developing-in-lima-with-visual-studio-code-a2d4c4250e72
+) for VSCode setup.

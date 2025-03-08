@@ -15,7 +15,7 @@ All the assignment can be done inside the VM created in the following way.
    - VMWare, Virtual Box
    - Mac only: Parallels Desktop, UTM, Lima, etc.
    - Windows only: WSL installed (which means Hyper-V is enabled) or Hyper-V
-- If you have an Apple Silicon Mac, then please install Lima as hypervisor, [some hints here](#install-ubuntu-2204-with-lima)
+   - If you have an Apple Silicon Mac, then please install Lima as hypervisor, [some hints here](#install-ubuntu-2204-with-lima)
 
 If you applies to either condition, we can not provide packed installtation for you, 
 else please go ahead to [next section](#linux-windows-and-intel-not-m1-mac).

@@ -9,7 +9,7 @@ BUFFER = {}  # Buffer for out-of-order packets
 PACKET_SIZE = 1024
 S = None
 OUTPUT_FILE = None
-LOGGING = True
+LOGGING = False
 
 
 def log(msg: str):

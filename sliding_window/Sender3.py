@@ -16,7 +16,7 @@ PACKETS_IN_TRANSIT = {}  # maps sequence id to packet for all in-transit packet
 PACKET_SIZE = 1024
 TOTAL_PACKETS = 0
 S = None
-LOGGING = True
+LOGGING = False
 
 # One thread to send, one thread to receive the acknowledgements.
 # Shared state of what has been acknowledged so far, sender only sends next packet if with in the window

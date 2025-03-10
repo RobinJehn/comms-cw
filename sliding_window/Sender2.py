@@ -10,7 +10,7 @@ PACKAGE_SIZE = 1024
 
 
 def send_packet_with_retry(
-    sock: socket.socket, packet: bin, retry_timeout_ms: int, seq_num: int
+    sock: socket.socket, packet: bytes, retry_timeout_ms: int, seq_num: int
 ) -> int:
     attempts = 0
     while True:
@@ -59,7 +59,7 @@ def send_file(filename: str, host: str, port: int, retry_timeout_ms: int):
             seq_num = (seq_num + 1) % 2
     file_size = os.path.getsize(filename)
     time_took = time.time() - start_time
-    throughput = int(file_size / time_took / 1000)
+    throughput = int(file_size / time_took / 1024)
     print(f"{total_attempts} {throughput}")
 
 

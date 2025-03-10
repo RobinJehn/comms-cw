@@ -1,6 +1,10 @@
 # Utils file to be used by all senders and receivers
+import os
+import math
+
 # Common variables
 PACKET_SIZE = 1024
+HEADER_SIZE = 3
 LOGGING = True
 
 
@@ -28,3 +32,27 @@ class SequenceNumber:
 
     def __call__(self, *args, **kwds) -> int:
         return self.seq_num
+
+
+def send_file(filename: str, sender):
+    """
+    Params:
+        filename: The name of the file to send
+        sender: The sender object to use to send the file
+    """
+    file_size = os.path.getsize(filename)
+    total_packets = math.ceil(file_size / PACKET_SIZE)
+
+    with open(filename, "rb") as f:
+        sent_packets = 0
+        while True:
+            # Get the data
+            data = f.read(PACKET_SIZE)
+            eof_flag = sent_packets + 1 == total_packets
+
+            while not sender.send(data, eof_flag):
+                pass
+            sent_packets += 1
+
+            if eof_flag:
+                break

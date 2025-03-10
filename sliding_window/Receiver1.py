@@ -4,15 +4,16 @@ import sys
 import socket
 import struct
 from typing import IO
+from utils import PACKET_SIZE, HEADER_SIZE
 
 
 def receive_packets(port: int, file: IO):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.bind(("0.0.0.0", port))
         while True:
-            packet = s.recv(1027)
-            _, eof_flag = struct.unpack("!HB", packet[:3])
-            data = packet[3:]
+            packet = s.recv(PACKET_SIZE + HEADER_SIZE)
+            _, eof_flag = struct.unpack("!HB", packet[:HEADER_SIZE])
+            data = packet[HEADER_SIZE:]
             file.write(data)
             if eof_flag:
                 break

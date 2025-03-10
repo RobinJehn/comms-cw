@@ -3,37 +3,37 @@
 import sys
 import socket
 import struct
-import os
-import math
-from utils import SequenceNumber, PACKET_SIZE
+from utils import SequenceNumber, send_file
 
 
-def send_file(filename: str, host: str, port: int):
-    file_size = os.path.getsize(filename)
-    total_packets = math.ceil(file_size / PACKET_SIZE)
+class NoRetry:
+    def __init__(self, host: str, port: int):
+        """
+        Params:
+            host: The host to send the data to
+            port: The port to send the data to
+        """
+        self.seq_num = SequenceNumber()
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.connect((host, port))
 
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s, open(
-        filename, "rb"
-    ) as f:
-        s.connect((host, port))
+    def send(self, data: bytes, eof_flag: bool) -> bool:
+        """
+        Params:
+            data: The data to send
+            eof_flag: A flag indicating if this is the last packet
+        Returns:
+            True if the packet was sent successfully, False otherwise
+        """
+        # Create the packet
+        header = struct.pack("!HB", self.seq_num(), eof_flag)
+        packet = header + data
 
-        seq_num = SequenceNumber()
-        while True:
-            # Get the data
-            data = f.read(PACKET_SIZE)
-            eof_flag = seq_num() == total_packets - 1  # -1 because seq_num starts at 0
+        # Send the packet
+        self.sock.sendall(packet)
+        self.seq_num.next()
 
-            # Create the packet
-            header = struct.pack("!HB", seq_num(), eof_flag)
-            packet = header + data
-
-            # Send the packet
-            s.sendall(packet)
-
-            if eof_flag:
-                break
-
-            seq_num.next()
+        return True
 
 
 if __name__ == "__main__":
@@ -41,4 +41,5 @@ if __name__ == "__main__":
     port = int(sys.argv[2])
     filename = sys.argv[3]
 
-    send_file(filename, remoteHost, port)
+    sender = NoRetry(remoteHost, port)
+    send_file(filename, sender)

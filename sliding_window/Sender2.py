@@ -5,8 +5,8 @@ import socket
 import struct
 import time
 import os
-
-PACKAGE_SIZE = 1024
+import math
+from utils import PACKET_SIZE, SequenceNumber
 
 
 def send_packet_with_retry(
@@ -31,32 +31,38 @@ def send_packet_with_retry(
 
 
 def send_file(filename: str, host: str, port: int, retry_timeout_ms: int):
+    file_size = os.path.getsize(filename)
+    total_packets = math.ceil(file_size / PACKET_SIZE)
+
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s, open(
         filename, "rb"
     ) as f:
         s.settimeout(retry_timeout_ms / 1000)
         s.connect((host, port))
-        seq_num = 0
+
+        seq_num = SequenceNumber(2)
         total_attempts = 0
         start_time = time.time()
+        send_packets = 0
         while True:
             # Get the data
-            data = f.read(PACKAGE_SIZE)
-            eof_flag = 1 if len(data) < PACKAGE_SIZE else 0
+            data = f.read(PACKET_SIZE)
+            # +1 because we haven't sent the packet yet
+            eof_flag = send_packets + 1 == total_packets
 
             # Create the packet
-            header = struct.pack("!HB", seq_num, eof_flag)
+            header = struct.pack("!HB", seq_num(), eof_flag)
             packet = header + data
 
             # Send the packet
             total_attempts += send_packet_with_retry(
-                s, packet, retry_timeout_ms, seq_num
+                s, packet, retry_timeout_ms, seq_num()
             )
 
             if eof_flag:
                 break
 
-            seq_num = (seq_num + 1) % 2
+            seq_num.next()
     file_size = os.path.getsize(filename)
     time_took = time.time() - start_time
     throughput = int(file_size / time_took / 1024)

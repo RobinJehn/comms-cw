@@ -7,25 +7,20 @@ import threading
 import time
 import os
 import math
+from utils import log, SequenceNumber
 
 LOCK = threading.Lock()
 BASE = 0  # Last unacknowledged package
-NEXT_SEQ_NUM = 0  # First unused sequence number
+NEXT_SEQ_NUM = SequenceNumber()  # First unused sequence number
 TIMER = None
 PACKETS_IN_TRANSIT = {}  # maps sequence id to packet for all in-transit packet
 PACKET_SIZE = 1024
 TOTAL_PACKETS = 0
 S = None
-LOGGING = False
 
 # One thread to send, one thread to receive the acknowledgements.
 # Shared state of what has been acknowledged so far, sender only sends next packet if with in the window
 # We resend all packages at once if the oldest packet that hasn't been acknowledged timed out.
-
-
-def log(msg: str):
-    if LOGGING:
-        print(msg)
 
 
 def timeout():
@@ -78,7 +73,7 @@ def handle_acknowledgments():
                 continue
             remove_from_transit(ack_seq_num)
             BASE = ack_seq_num + 1
-            if NEXT_SEQ_NUM == BASE:
+            if NEXT_SEQ_NUM() == BASE:
                 # Stop timer as every packet has been received
                 stop_timer()
             else:
@@ -97,22 +92,22 @@ def send_packet(data: bytes, eof_flag: bool, window_size: int):
     # Wait until we have gotten acknowledgments
     while True:
         with LOCK:
-            if NEXT_SEQ_NUM < BASE + window_size:
+            if NEXT_SEQ_NUM() < BASE + window_size:
                 break
         # Avoid full cpu usage
         time.sleep(0.01)
 
     with LOCK:
         # Build packet
-        if NEXT_SEQ_NUM == BASE:
+        if NEXT_SEQ_NUM() == BASE:
             start_timer()
-        header = struct.pack("!HB", NEXT_SEQ_NUM, eof_flag)
+        header = struct.pack("!HB", NEXT_SEQ_NUM(), eof_flag)
         packet = header + data
 
         # Send packet
-        PACKETS_IN_TRANSIT[NEXT_SEQ_NUM] = packet
+        PACKETS_IN_TRANSIT[NEXT_SEQ_NUM()] = packet
         S.sendall(packet)
-        NEXT_SEQ_NUM += 1
+        NEXT_SEQ_NUM.next()
 
 
 def send_file(filename: str, window_size: int):

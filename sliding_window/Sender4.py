@@ -7,9 +7,10 @@ import threading
 import time
 import os
 import math
+from utils import log, SequenceNumber
 
 LOCK = threading.Lock()
-NEXT_SEQ_NUM = 0  # First unused sequence number
+NEXT_SEQ_NUM = SequenceNumber()  # First unused sequence number
 TIMER = None
 PACKETS_IN_TRANSIT = (
     {}
@@ -17,18 +18,8 @@ PACKETS_IN_TRANSIT = (
 PACKET_SIZE = 1024
 TOTAL_PACKETS = 0
 S = None
-LOGGING = False
 HIGHEST_ACK = -1  # The higest sequence number we have an acknowledgment for
 DONE = False  # Flag set to true when all packages have been acknowledged
-
-# How do I have a timer for each packet?
-# Store the packets in transit as a tuple (time_stamp, packet)
-# In a thread iterate over the in transit packets and check whether any of them have timed out
-
-
-def log(msg: str):
-    if LOGGING:
-        print(msg)
 
 
 def base() -> int:
@@ -89,21 +80,21 @@ def send_packet(data: bytes, eof_flag: bool, window_size: int):
     # Wait until we have gotten acknowledgments
     while True:
         with LOCK:
-            if NEXT_SEQ_NUM < base() + window_size:
+            if NEXT_SEQ_NUM() < base() + window_size:
                 break
         # Avoid full cpu usage
         time.sleep(0.1)
-        log(f"Waiting for {NEXT_SEQ_NUM}")
+        log(f"Waiting for {NEXT_SEQ_NUM()}")
 
     with LOCK:
         # Build packet
-        header = struct.pack("!HB", NEXT_SEQ_NUM, eof_flag)
+        header = struct.pack("!HB", NEXT_SEQ_NUM(), eof_flag)
         packet = header + data
 
         # Send packet
-        PACKETS_IN_TRANSIT[NEXT_SEQ_NUM] = (time.time(), packet)
+        PACKETS_IN_TRANSIT[NEXT_SEQ_NUM()] = (time.time(), packet)
         S.sendall(packet)
-        NEXT_SEQ_NUM += 1
+        NEXT_SEQ_NUM.next()
 
 
 def send_file(filename: str, window_size: int):

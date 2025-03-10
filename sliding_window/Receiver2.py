@@ -5,6 +5,7 @@ import socket
 import struct
 from typing import IO
 
+
 def receive_packets(port: int, file: IO):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.bind(("0.0.0.0", port))
@@ -17,14 +18,15 @@ def receive_packets(port: int, file: IO):
             s.sendto(ack_packet, address)
 
             if seq_num != exp_seq_num:
-            #   print(f"Wrong sequence number: {seq_num}")
+                #   print(f"Wrong sequence number: {seq_num}")
                 continue
-            
+
             data = packet[3:]
             file.write(data)
             if eof_flag:
                 break
             exp_seq_num = (exp_seq_num + 1) % 2
+
 
 def receive_file(filename: str, port: int):
     with open(filename, "wb") as f:

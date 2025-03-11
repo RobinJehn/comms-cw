@@ -34,7 +34,7 @@ class NoRetry:
         self.sock.sendall(packet)
         self.seq_num.next()
         # We need to sleep a bit to avoid the receiver getting overwhelmed
-        time.sleep(0.01)
+        time.sleep(0.001)
 
         return True
 

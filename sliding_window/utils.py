@@ -19,16 +19,13 @@ class SequenceNumber:
     def __init__(self, max_seq_num: int | None = None):
         """
         Params:
-        max_seq_num: The maximum sequence number to use. If None, the sequence number will be incremented indefinitely.
+        max_seq_num: The maximum sequence number to use. If None, we use 2^16 because we use a 2 byte sequence number
         """
         self.seq_num = 0
-        self.max_seq_num = max_seq_num
+        self.max_seq_num = math.pow(2, 16) if max_seq_num is None else max_seq_num
 
     def next(self) -> None:
-        if self.max_seq_num is None:
-            self.seq_num += 1
-        else:
-            self.seq_num = (self.seq_num + 1) % self.max_seq_num
+        self.seq_num = (self.seq_num + 1) % self.max_seq_num
 
     def __call__(self, *args, **kwds) -> int:
         return self.seq_num

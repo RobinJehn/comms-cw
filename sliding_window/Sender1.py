@@ -3,6 +3,7 @@
 import sys
 import socket
 import struct
+import time
 from utils import SequenceNumber, send_file
 
 
@@ -32,8 +33,16 @@ class NoRetry:
         # Send the packet
         self.sock.sendall(packet)
         self.seq_num.next()
+        # We need to sleep a bit to avoid the receiver getting overwhelmed
+        time.sleep(0.01)
 
         return True
+
+    def __del__(self):
+        """
+        Destructor to ensure the socket is closed when the object is deleted
+        """
+        self.sock.close()
 
 
 if __name__ == "__main__":

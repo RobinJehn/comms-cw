@@ -3,6 +3,7 @@
 for i in {1..5}
 do
     echo "Iteration $i"
+    rm -f abc.png
     
     # Run Receiver2.py and Sender2.py in parallel
     python3 Receiver2.py 12345 abc.png &

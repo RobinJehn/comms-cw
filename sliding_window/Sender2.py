@@ -49,6 +49,9 @@ class StopAndWait:
             except socket.timeout:
                 self.total_retransmissions += 1
                 log(f"Retransmission: {self.total_retransmissions}")
+            except ConnectionRefusedError as e:
+                log(f"Connection refused: {e}")
+                break
 
     def __del__(self):
         self.sock.close()

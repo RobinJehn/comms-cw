@@ -5,8 +5,7 @@ import socket
 import struct
 import time
 import os
-import math
-from utils import PACKET_SIZE, SequenceNumber, log, send_file
+from utils import SequenceNumber, log, send_file
 
 
 class StopAndWait:

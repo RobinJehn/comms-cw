@@ -16,10 +16,10 @@ class SlidingWindow:
         self.window_size = window_size
         self.lock = threading.Lock()
         self.seq_num = SequenceNumber()
-        self.timer = None
         self.packets_in_transit = {}
         self.highest_ack = -1
-        self.done = False
+        self.socekt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.connect((host, port))
 
     def base(self) -> int:
         """
@@ -38,7 +38,7 @@ class SlidingWindow:
         while True:
             with self.lock:
                 # We are done
-                if self.done:
+                if self.base() >= self.total_packets:
                     break
 
                 for seq_num, (time_stamp, packet) in self.packets_in_transit.items():
@@ -61,10 +61,9 @@ class SlidingWindow:
 
                 # End if all packets have been acknowledged
                 if self.base() >= self.total_packets:  # Base is 0 indexed
-                    self.done = True
                     break
 
-    def send_packet(self, data: bytes, eof_flag: bool):
+    def send(self, data: bytes, eof_flag: bool) -> bool:
         # Wait until we have gotten acknowledgments
         while True:
             with self.lock:
@@ -81,8 +80,9 @@ class SlidingWindow:
 
             # Send packet
             self.packets_in_transit[self.seq_num()] = (time.time(), packet)
-            S.sendall(packet)
+            self.socket.sendall(packet)
             self.seq_num.next()
+        return True
 
 
 if __name__ == "__main__":

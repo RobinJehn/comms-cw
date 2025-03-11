@@ -5,7 +5,7 @@ import math
 # Common variables
 PACKET_SIZE = 1024
 HEADER_SIZE = 3
-LOGGING = True
+LOGGING = False
 
 
 # Log function to easily turn on and off all logging for debugging

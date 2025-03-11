@@ -71,6 +71,7 @@ class GoBackN:
             # Build packet
             if self.seq_num() == self.base:
                 self.start_timer()
+            log(f"{self.seq_num()}")
             header = struct.pack("!HB", self.seq_num(), eof_flag)
             packet = header + data
 
@@ -78,6 +79,7 @@ class GoBackN:
             self.packets_in_transit[self.seq_num()] = packet
             self.sock.sendall(packet)
             self.seq_num.next()
+        return True
 
     def handle_acknowledgments(self):
         while True:

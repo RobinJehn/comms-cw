@@ -22,12 +22,12 @@ class SequenceNumber:
         max_seq_num: The maximum sequence number to use. If None, we use 2^16 because we use a 2 byte sequence number
         """
         self.seq_num = 0
-        self.max_seq_num = math.pow(2, 16) if max_seq_num is None else max_seq_num
+        self.max_seq_num = int(math.pow(2, 16)) if max_seq_num is None else max_seq_num
 
     def next(self) -> None:
         self.seq_num = (self.seq_num + 1) % self.max_seq_num
 
-    def __call__(self, *args, **kwds) -> int:
+    def __call__(self) -> int:
         return self.seq_num
 
 

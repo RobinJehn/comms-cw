@@ -18,8 +18,9 @@ class SlidingWindow:
         self.seq_num = SequenceNumber()
         self.packets_in_transit = {}
         self.highest_ack = -1
-        self.socekt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.connect((host, port))
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.connect((host, port))
 
     def base(self) -> int:
         """
@@ -80,7 +81,7 @@ class SlidingWindow:
 
             # Send packet
             self.packets_in_transit[self.seq_num()] = (time.time(), packet)
-            self.socket.sendall(packet)
+            self.sock.sendall(packet)
             self.seq_num.next()
         return True
 

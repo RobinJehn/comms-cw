@@ -20,6 +20,7 @@ class GoBackN:
         total_packets: int,
     ):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.connect((host, port))
         self.retry_timeout_s = retry_timeout_ms / 1000
         self.sock.settimeout(self.retry_timeout_s)

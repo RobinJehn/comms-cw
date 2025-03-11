@@ -8,19 +8,19 @@ from utils import PACKET_SIZE, HEADER_SIZE, log, SequenceNumber
 
 
 def receive_packets(port: int, file: IO):
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.bind(("0.0.0.0", port))
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.bind(("0.0.0.0", port))
         exp_seq_num = SequenceNumber(2)
         while True:
-            packet, address = s.recvfrom(PACKET_SIZE + HEADER_SIZE)
+            packet, address = sock.recvfrom(PACKET_SIZE + HEADER_SIZE)
             seq_num, eof_flag = struct.unpack("!HB", packet[:HEADER_SIZE])
-
-            ack_packet = struct.pack("!H", seq_num)
-            s.sendto(ack_packet, address)
 
             if seq_num != exp_seq_num():
                 log(f"Wrong sequence number: {seq_num}")
                 continue
+
+            ack_packet = struct.pack("!H", seq_num)
+            sock.sendto(ack_packet, address)
 
             data = packet[HEADER_SIZE:]
             file.write(data)

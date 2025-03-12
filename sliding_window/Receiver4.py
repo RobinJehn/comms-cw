@@ -42,6 +42,8 @@ def receive_packets():
         log(f"eof_flag: {eof_flag}")
 
         with LOCK:
+            if seq_num < BASE - WINDOW_SIZE or seq_num >= BASE + WINDOW_SIZE:
+                continue
             send_ack(S, addr, seq_num)
             if seq_num < BASE:
                 log("seq_num < BASE")
@@ -76,6 +78,7 @@ def receive_packets():
 if __name__ == "__main__":
     port = int(sys.argv[1])
     output_filename = sys.argv[2]
+    WINDOW_SIZE = int(sys.argv[3])
 
     S = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     S.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

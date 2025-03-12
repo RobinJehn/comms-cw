@@ -6,7 +6,7 @@ import math
 PACKET_SIZE = 1024
 HEADER_SIZE = 3
 LOGGING = False
-
+HEADER_FORMAT = "!H?"
 
 # Log function to easily turn on and off all logging for debugging
 def log(msg: str):

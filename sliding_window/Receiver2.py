@@ -4,7 +4,7 @@ import sys
 import socket
 import struct
 from typing import IO
-from utils import PACKET_SIZE, HEADER_SIZE, log, SequenceNumber
+from utils import PACKET_SIZE, HEADER_SIZE, log, SequenceNumber, HEADER_FORMAT
 
 
 def receive_packets(port: int, file: IO):
@@ -13,7 +13,7 @@ def receive_packets(port: int, file: IO):
         exp_seq_num = SequenceNumber(2)
         while True:
             packet, address = sock.recvfrom(PACKET_SIZE + HEADER_SIZE)
-            seq_num, eof_flag = struct.unpack("!HB", packet[:HEADER_SIZE])
+            seq_num, eof_flag = struct.unpack(HEADER_FORMAT, packet[:HEADER_SIZE])
 
             ack_packet = struct.pack("!H", seq_num)
             sock.sendto(ack_packet, address)

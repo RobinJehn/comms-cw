@@ -7,7 +7,7 @@ import threading
 import time
 import os
 import math
-from utils import log, SequenceNumber, PACKET_SIZE, send_file
+from utils import log, SequenceNumber, PACKET_SIZE, send_file, HEADER_FORMAT
 
 
 class SlidingWindow:
@@ -76,7 +76,7 @@ class SlidingWindow:
 
         with self.lock:
             # Build packet
-            header = struct.pack("!HB", self.seq_num(), eof_flag)
+            header = struct.pack(HEADER_FORMAT, self.seq_num(), eof_flag)
             packet = header + data
 
             # Send packet

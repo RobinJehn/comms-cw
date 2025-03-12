@@ -4,7 +4,7 @@ import sys
 import socket
 import struct
 import threading
-from utils import log, PACKET_SIZE, HEADER_SIZE
+from utils import log, PACKET_SIZE, HEADER_SIZE, HEADER_FORMAT
 
 LOCK = threading.Lock()
 BASE = 0  # Expected sequence number of the next in-order packet
@@ -37,7 +37,7 @@ def receive_packets():
             continue
 
         # Extract the sequence number and EOF flag
-        seq_num, eof_flag = struct.unpack("!HB", packet[:HEADER_SIZE])
+        seq_num, eof_flag = struct.unpack(HEADER_FORMAT, packet[:HEADER_SIZE])
         data = packet[3:]
         log(f"eof_flag: {eof_flag}")
 

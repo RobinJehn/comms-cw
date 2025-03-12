@@ -4,7 +4,7 @@ import sys
 import socket
 import struct
 import time
-from utils import SequenceNumber, send_file
+from utils import SequenceNumber, send_file, HEADER_FORMAT
 
 
 class NoRetry:
@@ -27,7 +27,7 @@ class NoRetry:
             True if the packet was sent successfully, False otherwise
         """
         # Create the packet
-        header = struct.pack("!HB", self.seq_num(), eof_flag)
+        header = struct.pack(HEADER_FORMAT, self.seq_num(), eof_flag)
         packet = header + data
 
         # Send the packet

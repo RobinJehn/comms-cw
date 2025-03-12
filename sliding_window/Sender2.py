@@ -5,7 +5,7 @@ import socket
 import struct
 import time
 import os
-from utils import SequenceNumber, log, send_file
+from utils import SequenceNumber, log, send_file, HEADER_FORMAT
 
 
 class StopAndWait:
@@ -26,7 +26,7 @@ class StopAndWait:
             True if the packet was sent successfully, False otherwise
         """
         # Create the packet
-        header = struct.pack("!HB", self.seq_num(), eof_flag)
+        header = struct.pack(HEADER_FORMAT, self.seq_num(), eof_flag)
         packet = header + data
 
         # Send the packet
@@ -34,7 +34,7 @@ class StopAndWait:
         self.seq_num.next()
         return True
 
-    def send_packet_with_retry(self, packet: bytes) -> int:
+    def send_packet_with_retry(self, packet: bytes):
         while True:
             self.sock.sendall(packet)
             try:
@@ -45,6 +45,7 @@ class StopAndWait:
                     break
                 else:
                     log(f"Received wrong ack: {ack_seq_num}")
+                    self.total_retransmissions += 1
                     pass
             except socket.timeout:
                 self.total_retransmissions += 1

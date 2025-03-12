@@ -4,7 +4,7 @@ import sys
 import socket
 import struct
 from typing import IO
-from utils import PACKET_SIZE, HEADER_SIZE
+from utils import PACKET_SIZE, HEADER_SIZE, HEADER_FORMAT
 
 
 def receive_packets(port: int, file: IO):
@@ -12,7 +12,7 @@ def receive_packets(port: int, file: IO):
         s.bind(("0.0.0.0", port))
         while True:
             packet = s.recv(PACKET_SIZE + HEADER_SIZE)
-            _, eof_flag = struct.unpack("!HB", packet[:HEADER_SIZE])
+            _, eof_flag = struct.unpack(HEADER_FORMAT, packet[:HEADER_SIZE])
             data = packet[HEADER_SIZE:]
             file.write(data)
             if eof_flag:

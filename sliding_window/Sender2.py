@@ -70,3 +70,4 @@ if __name__ == "__main__":
     time_took = time.time() - start_time
     throughput = int(os.path.getsize(filename) / time_took / 1024)
     print(f"{sender.total_retransmissions} {throughput}")
+    sender.sock.close()

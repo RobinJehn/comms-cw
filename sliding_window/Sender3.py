@@ -132,3 +132,4 @@ if __name__ == "__main__":
     print(f"{throughput}")
 
     ack_thread.join()
+    sender.sock.close()

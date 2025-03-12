@@ -8,10 +8,11 @@ from utils import PACKET_SIZE, HEADER_SIZE, HEADER_FORMAT
 
 
 def receive_packets(port: int, file: IO):
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.bind(("0.0.0.0", port))
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("0.0.0.0", port))
         while True:
-            packet = s.recv(PACKET_SIZE + HEADER_SIZE)
+            packet = sock.recv(PACKET_SIZE + HEADER_SIZE)
             _, eof_flag = struct.unpack(HEADER_FORMAT, packet[:HEADER_SIZE])
             data = packet[HEADER_SIZE:]
             file.write(data)

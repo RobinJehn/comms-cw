@@ -9,6 +9,7 @@ from utils import PACKET_SIZE, HEADER_SIZE, log, SequenceNumber, HEADER_FORMAT
 
 def receive_packets(port: int, file: IO):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("0.0.0.0", port))
         exp_seq_num = SequenceNumber(2)
         while True:

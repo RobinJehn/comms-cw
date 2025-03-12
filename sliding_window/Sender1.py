@@ -52,3 +52,4 @@ if __name__ == "__main__":
 
     sender = NoRetry(remoteHost, port)
     send_file(filename, sender)
+    sender.sock.close()

@@ -109,3 +109,4 @@ if __name__ == "__main__":
 
     resend_thread.join()
     ack_thread.join()
+    sender.sock.close()

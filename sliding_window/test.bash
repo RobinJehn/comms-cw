@@ -19,6 +19,8 @@ for value in "${test_values[@]}"; do
         python3 Receiver2.py 12345 abc.png &
         receiver_pid=$!
 
+        sleep 0.5
+
         # Run Sender2.py in the background and redirect its output to a temporary file
         python3 Sender2.py localhost 12345 test.jpg $value > sender_output.txt &
         sender_pid=$!
@@ -27,6 +29,8 @@ for value in "${test_values[@]}"; do
         wait $receiver_pid
         wait $sender_pid
 
+        sleep 0.5
+        
         # Read the sender output from the file
         output=$(cat sender_output.txt)
         rm sender_output.txt

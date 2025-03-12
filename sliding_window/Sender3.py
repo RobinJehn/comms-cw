@@ -21,7 +21,13 @@ class GoBackN:
     ):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.connect((host, port))
+        while True:
+            try:
+                self.sock.connect((host, port))
+                break
+            except socket.error:
+                log("Connection failed, retrying...")
+                time.sleep(1)
         self.retry_timeout_s = retry_timeout_ms / 1000
         self.sock.settimeout(self.retry_timeout_s)
         self.window_size = window_size

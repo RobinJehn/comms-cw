@@ -20,7 +20,13 @@ class SlidingWindow:
         self.highest_ack = -1
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.connect((host, port))
+        while True:
+            try:
+                self.sock.connect((host, port))
+                break
+            except socket.error:
+                log("Connection failed, retrying...")
+                time.sleep(1)
 
     def base(self) -> int:
         """

@@ -17,14 +17,20 @@ for value in "${test_values[@]}"; do
         
         # Run Receiver2.py in the background
         python3 Receiver2.py 12345 abc.png &
-        RECEIVER_PID=$!
-        
-        # Run Sender2.py with the current test value and capture its output
-        output=$(python3 Sender2.py localhost 12345 test.jpg $value)
-        
-        # Wait for the Receiver process to finish
-        wait $RECEIVER_PID
-        
+        receiver_pid=$!
+
+        # Run Sender2.py in the background and redirect its output to a temporary file
+        python3 Sender2.py localhost 12345 test.jpg $value > sender_output.txt &
+        sender_pid=$!
+
+        # Wait for both processes to finish
+        wait $receiver_pid
+        wait $sender_pid
+
+        # Read the sender output from the file
+        output=$(cat sender_output.txt)
+        rm sender_output.txt
+
         # Extract total_retransmissions and throughput from the output
         total_retransmissions=$(echo "$output" | awk '{print $1}')
         throughput=$(echo "$output" | awk '{print $2}')
@@ -37,6 +43,7 @@ for value in "${test_values[@]}"; do
             echo "No differences found between abc.png and test.jpg"
         else
             echo "Differences found between abc.png and test.jpg"
+            echo $(diff abc.png test.jpg)
         fi
     done
     

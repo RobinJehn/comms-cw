@@ -4,7 +4,7 @@ import sys
 import socket
 import struct
 import time
-from utils import SequenceNumber, send_file, HEADER_FORMAT, log
+from utils import SequenceNumber, send_file, HEADER_FORMAT
 
 
 class NoRetry:
@@ -16,13 +16,7 @@ class NoRetry:
         """
         self.seq_num = SequenceNumber()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        while True:
-            try:
-                self.sock.connect((host, port))
-                break
-            except socket.error:
-                log("Connection failed, retrying...")
-                time.sleep(1)
+        self.sock.connect((host, port))
 
     def send(self, data: bytes, eof_flag: bool) -> bool:
         """

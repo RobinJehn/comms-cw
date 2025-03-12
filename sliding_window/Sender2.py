@@ -13,13 +13,7 @@ class StopAndWait:
         self.seq_num = SequenceNumber(2)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        while True:
-            try:
-                self.sock.connect((host, port))
-                break
-            except socket.error:
-                log("Connection failed, retrying...")
-                time.sleep(1)
+        self.sock.connect((host, port))
         self.sock.settimeout(retry_timeout_ms / 1000)
         self.total_retransmissions = 0
 

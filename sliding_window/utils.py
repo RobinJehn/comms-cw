@@ -47,8 +47,18 @@ def send_file(filename: str, sender):
             data = f.read(PACKET_SIZE)
             eof_flag = sent_packets + 1 == total_packets
 
-            while not sender.send(data, eof_flag):
-                pass
+            if eof_flag:
+                log("Sending last packet")
+                # If sending the last packet fails we don't want to retry
+                sender.send(data, eof_flag)
+            else:
+                retry_count = 0
+                max_retries = 100
+                while not sender.send(data, eof_flag):
+                    retry_count += 1
+                    if retry_count >= max_retries:
+                        log(f"Failed to send packet after {max_retries} retries")
+                        return
             sent_packets += 1
 
             if eof_flag:

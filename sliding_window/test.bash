@@ -44,6 +44,7 @@ for value in "${test_values[@]}"; do
         else
             echo "Differences found between abc.png and test.jpg"
             echo $(diff abc.png test.jpg)
+            echo $(ls -ahl abc.png)
         fi
     done
     

@@ -116,6 +116,51 @@ class Nat(app_manager.OSKenApp):
         # Let the datapath know about the flow modification
         datapath.send_msg(mod)
 
+    def _send_rst(self, datapath, in_port, pkt, ip_packet, tcp_packet):
+        """
+        Send a TCP RST packet to the client when no port is available.
+        """
+        ofp = datapath.ofproto
+        parser = datapath.ofproto_parser
+
+        # Build a new TCP segment with the RST flag set.
+        # Using the original packet's values for ports and sequence numbers.
+        rst_tcp = tcp.tcp(
+            src_port=tcp_packet.src_port,
+            dst_port=tcp_packet.dst_port,
+            seq=tcp_packet.ack,  # Use the ACK as the sequence number
+            ack=tcp_packet.seq + 1,  # Acknowledge the sequenc
+            bits=ofp.TCP_FLAG_RST,  # Set the RST flag
+            window_size=0,
+        )
+
+        # Build a new IPv4 packet.
+        # Swap source and destination so that the RST is sent back to the sender.
+        rst_ip = ipv4.ipv4(src=ip_packet.dst, dst=ip_packet.src, proto=ip_packet.proto)
+
+        # Build a new Ethernet frame.
+        # Swap source and destination MAC addresses.
+        eth = pkt.get_protocol(ethernet.ethernet)
+        rst_eth = ethernet.ethernet(src=eth.dst, dst=eth.src, ethertype=eth.ethertype)
+
+        # Assemble the packet.
+        p = packet.Packet()
+        p.add_protocol(rst_eth)
+        p.add_protocol(rst_ip)
+        p.add_protocol(rst_tcp)
+        p.serialize()
+
+        # Create PacketOut message: send the RST back through the input port.
+        actions = [parser.OFPActionOutput(in_port)]
+        out = parser.OFPPacketOut(
+            datapath=datapath,
+            buffer_id=ofp.OFP_NO_BUFFER,
+            in_port=ofp.OFPP_CONTROLLER,
+            actions=actions,
+            data=p.data,
+        )
+        datapath.send_msg(out)
+
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         msg = ev.msg
@@ -169,6 +214,7 @@ class Nat(app_manager.OSKenApp):
                 public_port = self._get_port()
                 if public_port is None:
                     print("No available ports")
+                    self._send_rst(dp, in_port, pkt, ip_packet, tcp_packet)
                     return
                 public_entry = (ip_packet.dst, public_port, datetime.datetime.now())
                 self.nat_table[private_entry] = public_entry

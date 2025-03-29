@@ -47,7 +47,7 @@ class SlidingWindow:
                         self.sock.sendall(packet)
                         log(f"Resend packet: {seq_num}")
                         self.packets_in_transit[seq_num] = (time.time(), packet)
-            time.sleep(0.1)
+            time.sleep(0.005)
 
     def handle_acknowledgments(self):
         while True:
@@ -71,7 +71,7 @@ class SlidingWindow:
                 if self.seq_num() < self.base() + window_size:
                     break
             # Avoid full cpu usage
-            time.sleep(0.1)
+            time.sleep(0.005)
             log(f"Waiting for {self.seq_num()}")
 
         with self.lock:

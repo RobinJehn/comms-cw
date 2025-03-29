@@ -31,6 +31,7 @@ class GoBackN:
         self.packets_in_transit = {}
         self.timer = None
         self.total_packets = total_packets
+        self.done = False
 
     def start_timer(self):
         if self.timer:
@@ -48,7 +49,11 @@ class GoBackN:
         log("Timeout")
         with self.lock:
             for data in self.packets_in_transit.values():
-                self.sock.sendall(data)
+                try:
+                    self.sock.sendall(data)
+                except ConnectionRefusedError as e:
+                    with self.lock:
+                        self.done = True
             self.start_timer()
 
     def remove_from_transit(self, ack_seq_num: int):
@@ -84,7 +89,14 @@ class GoBackN:
 
     def handle_acknowledgments(self):
         while True:
-            ack_data = self.sock.recv(2)
+            with self.lock:
+                if self.done:
+                    break
+
+            try:
+                ack_data = self.sock.recv(2)
+            except socket.timeout:
+                pass
             ack_seq_num = struct.unpack("!H", ack_data)[0]
             with self.lock:
                 # Ignore old acknowledgments

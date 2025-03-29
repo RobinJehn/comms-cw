@@ -25,7 +25,7 @@ for value in "${test_values[@]}"; do
         sleep 0.5
 
         # Run Sender2.py in the background and redirect its output to a temporary file
-        python3 Sender4.py localhost 12345 test.jpg 60 $window_size > sender_output.txt &
+        python3 Sender4.py localhost 12345 test.jpg 60 $value > sender_output.txt &
         sender_pid=$!
 
         # Wait for both processes to finish

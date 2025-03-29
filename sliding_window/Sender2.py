@@ -47,15 +47,18 @@ class StopAndWait:
                 if ack_seq_num == self.seq_num():
                     return True
                 else:
-                    log(f"Received wrong ack: {ack_seq_num}")
+                    log(
+                        f"Received wrong ack: {ack_seq_num}, should be {self.seq_num()}"
+                    )
                     self.total_retransmissions += 1
                     pass
             except socket.timeout:
                 self.total_retransmissions += 1
                 log(f"Retransmission: {self.total_retransmissions}")
+            # Does this only happen when the receiver finishes?
             except ConnectionRefusedError as e:
-                self.total_retransmissions += 1
                 log(f"Connection refused: {e}")
+                break
 
         return False
 

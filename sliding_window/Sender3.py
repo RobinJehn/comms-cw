@@ -32,6 +32,9 @@ class GoBackN:
         self.timer = None
         self.total_packets = total_packets
         self.done = False
+        self.consecutive_retransmissions = 0
+        # When dropping the last ack we need to terminate
+        self.max_retransmissions = 10
 
     def start_timer(self):
         if self.timer:
@@ -43,18 +46,24 @@ class GoBackN:
         if self.timer:
             self.timer.cancel()
         self.timer = None
+        self.consecutive_retransmissions = 0
 
     def timeout_event(self):
         # Resend all in-transit packets
         log("Timeout")
-        print("Timeout")
         with self.lock:
+            if self.consecutive_retransmissions >= self.max_retransmissions:
+                log("Max retransmissions reached")
+                self.done = True
+                return
+            self.consecutive_retransmissions += 1
             for data in self.packets_in_transit.values():
                 try:
                     self.sock.sendall(data)
                 except ConnectionRefusedError:
-                    print("Connection refused")
+                    log("Connection refused")
                     self.done = True
+                    break
             self.start_timer()
 
     def remove_from_transit(self, ack_seq_num: int):

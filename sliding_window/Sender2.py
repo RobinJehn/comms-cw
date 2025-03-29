@@ -39,8 +39,8 @@ class StopAndWait:
     def send_packet_with_retry(self, packet: bytes) -> bool:
         start_retry_amount = self.total_retransmissions
         while start_retry_amount + self.packet_retry_limit > self.total_retransmissions:
-            self.sock.sendall(packet)
             try:
+                self.sock.sendall(packet)
                 # Wait for acknowledgment and verify that it matches the seq_num
                 ack_data = self.sock.recv(2)
                 ack_seq_num = struct.unpack("!H", ack_data)[0]

@@ -11,7 +11,6 @@ for value in "${test_values[@]}"; do
     echo "----------------------------"
     echo "Testing with parameter value: $value"
     
-    total_total_retransmissions=0
     total_total_throughput=0
     
     for i in $(seq 1 $iterations); do
@@ -39,12 +38,9 @@ for value in "${test_values[@]}"; do
         rm sender_output.txt
 
         # Extract total_retransmissions and throughput from the output
-        total_retransmissions=$(echo "$output" | awk '{print $1}')
-        throughput=$(echo "$output" | awk '{print $2}')
+        throughput=$(echo "$output" | awk '{print $1}')
         
-        echo "Retransmissions: $total_retransmissions"
         echo "Throughput: $throughput"
-        total_total_retransmissions=$(( total_total_retransmissions + total_retransmissions ))
         total_total_throughput=$(( total_total_throughput + throughput ))
         
         # Check for differences between the files
@@ -58,10 +54,8 @@ for value in "${test_values[@]}"; do
     done
     
     # Calculate and display averages for the current test value
-    avg_retransmissions=$(( total_total_retransmissions / iterations ))
     avg_throughput=$(( total_total_throughput / iterations ))
     
     echo "For parameter value $value:"
-    echo "  Average total retransmissions: $avg_retransmissions"
     echo "  Average total throughput: $avg_throughput"
 done

@@ -56,7 +56,7 @@ class GoBackN:
                 log("Max retransmissions reached")
                 self.done = True
                 return
-            if self.base == self.seq_num() - 1:
+            if self.base >= self.total_packets() - self.window_size:
                 self.consecutive_retransmissions += 1
             for data in self.packets_in_transit.values():
                 try:

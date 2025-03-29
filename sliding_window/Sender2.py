@@ -10,7 +10,8 @@ from utils import SequenceNumber, log, send_file, HEADER_FORMAT
 
 class StopAndWait:
     def __init__(self, host: str, port: int, retry_timeout_ms: int):
-        self.seq_num = SequenceNumber(2)
+        # Usually it should be limited to 2
+        self.seq_num = SequenceNumber()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.connect((host, port))
@@ -55,7 +56,7 @@ class StopAndWait:
             except ConnectionRefusedError as e:
                 self.total_retransmissions += 1
                 log(f"Connection refused: {e}")
-        
+
         return False
 
     def __del__(self):

@@ -39,6 +39,8 @@ for value in "${test_values[@]}"; do
         total_retransmissions=$(echo "$output" | awk '{print $1}')
         throughput=$(echo "$output" | awk '{print $2}')
         
+        echo "Retransmissions: $total_retransmissions"
+        echo "Throughput: $throughput"
         total_total_retransmissions=$(( total_total_retransmissions + total_retransmissions ))
         total_total_throughput=$(( total_total_throughput + throughput ))
         

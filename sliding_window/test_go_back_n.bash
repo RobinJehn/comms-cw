@@ -66,4 +66,11 @@ for value in "${test_values[@]}"; do
         
         # Calculate and display averages for the current window size
         avg_retransmissions=$(( total_total_retransmissions / iterations ))
-        avg_th_
+        avg_throughput=$(( total_total_throughput / iterations ))
+        
+        echo "For parameter value $value and window size $window_size:"
+        echo "  Average total retransmissions: $avg_retransmissions"
+        echo "  Average total throughput: $avg_throughput"
+        echo ""
+    done
+done

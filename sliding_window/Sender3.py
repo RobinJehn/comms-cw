@@ -47,11 +47,13 @@ class GoBackN:
     def timeout_event(self):
         # Resend all in-transit packets
         log("Timeout")
+        print("Timeout")
         with self.lock:
             for data in self.packets_in_transit.values():
                 try:
                     self.sock.sendall(data)
-                except ConnectionRefusedError as e:
+                except ConnectionRefusedError:
+                    print("Connection refused")
                     with self.lock:
                         self.done = True
             self.start_timer()

@@ -41,15 +41,27 @@ class Nat(app_manager.OSKenApp):
         # 122 recommended, but 10 for this coursework
         self.entry_timeout = 10
 
-    def _remove_one_expired_entry(self):
+    def _remove_one_expired_entry(self, datapath):
         """Remove one expired entry from the NAT table"""
         now = datetime.datetime.now()
-        for k, (_, public_port, timestamp) in self.nat_table.items():
+        for k, (public_ip, public_port, timestamp) in self.nat_table.items():
             if (now - timestamp).seconds > self.entry_timeout:
                 self.available_ports.add(public_port)
                 self.used_ports.remove(public_port)
                 del self.nat_table[k]
+
+                # Construct a match corresponding to the NAT-translated flow.
+                match = self.dp.ofproto_parser.OFPMatch(
+                    eth_type=0x0800,  # IPv4
+                    ipv4_src=public_ip,  # NAT-translated source IP
+                    ip_proto=6,  # TCP protocol
+                    tcp_src=public_port,  # NAT-translated source port
+                )
+                # Call add_flow with delete=True to remove the flow.
+                self.add_flow(self.dp, prio=1, match=match, acts=[], delete=True)
+
                 break
+        # TODO: Remove flow
 
     def _get_port(self) -> int | None:
         if len(self.available_ports) == 0:
@@ -253,6 +265,7 @@ class Nat(app_manager.OSKenApp):
         p.serialize()
 
         # Install a flow rule so that future packets in this flow are handled directly by the switch.
+        # TODO: Do I need to add this for the original ip's or the translated ip's?
         match = psr.OFPMatch(
             in_port=in_port,
             eth_type=0x0800,  # ipv4
@@ -262,7 +275,11 @@ class Nat(app_manager.OSKenApp):
             tcp_src=tcp_packet.src_port,
             tcp_dst=tcp_packet.dst_port,
         )
-        actions = [psr.OFPActionOutput(ofp.OFPP_NORMAL)]  # Send to normal processing
+        actions = [
+            psr.OFPActionSetField(ipv4_src=public_ip),
+            psr.OFPActionSetField(tcp_src=public_port),
+            psr.OFPActionOutput(ofp.OFPP_NORMAL),
+        ]
         self.add_flow(dp, 1, match, actions)
 
         # We ignore any buffered packets and send the new packet directly to the switch

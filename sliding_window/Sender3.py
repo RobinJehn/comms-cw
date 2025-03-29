@@ -54,8 +54,7 @@ class GoBackN:
                     self.sock.sendall(data)
                 except ConnectionRefusedError:
                     print("Connection refused")
-                    with self.lock:
-                        self.done = True
+                    self.done = True
             self.start_timer()
 
     def remove_from_transit(self, ack_seq_num: int):

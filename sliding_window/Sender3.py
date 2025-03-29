@@ -92,11 +92,10 @@ class GoBackN:
             with self.lock:
                 if self.done:
                     break
-
             try:
                 ack_data = self.sock.recv(2)
             except socket.timeout:
-                pass
+                continue
             ack_seq_num = struct.unpack("!H", ack_data)[0]
             with self.lock:
                 # Ignore old acknowledgments

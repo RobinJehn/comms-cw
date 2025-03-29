@@ -34,7 +34,7 @@ class GoBackN:
         self.done = False
         self.consecutive_retransmissions = 0
         # When dropping the last ack we need to terminate
-        self.max_retransmissions = 10
+        self.max_retransmissions = 1000
 
     def start_timer(self):
         if self.timer:
@@ -56,7 +56,8 @@ class GoBackN:
                 log("Max retransmissions reached")
                 self.done = True
                 return
-            self.consecutive_retransmissions += 1
+            if self.base == self.seq_num() - 1:
+                self.consecutive_retransmissions += 1
             for data in self.packets_in_transit.values():
                 try:
                     self.sock.sendall(data)

@@ -105,7 +105,7 @@ class GoBackN:
                     break
             try:
                 ack_data = self.sock.recv(2)
-            except socket.timeout:
+            except Exception:
                 continue
             ack_seq_num = struct.unpack("!H", ack_data)[0]
             with self.lock:
@@ -123,6 +123,7 @@ class GoBackN:
                 # End if all packets have been acknowledged
                 if self.base >= self.total_packets:  # Base is 0 indexed
                     break
+        self.stop_timer()
 
     def __del__(self):
         self.sock.close()

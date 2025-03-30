@@ -27,6 +27,7 @@ class SlidingWindow:
         self.highest_ack = -1
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.settimeout(retry_timeout_s)
         self.sock.connect((host, port))
         self.done = False
         # If a single packet needs to be retransmitted more often we assume something is wrong
@@ -76,7 +77,13 @@ class SlidingWindow:
 
     def handle_acknowledgments(self):
         while True:
-            ack_data = self.sock.recv(2)
+            try:
+                ack_data = self.sock.recv(2)
+            except socket.timeout:
+                with self.lock:
+                    if self.base() >= self.total_packets or self.done:
+                        return
+                continue
             ack_seq_num = struct.unpack("!H", ack_data)[0]
             with self.lock:
                 if self.done:
@@ -90,7 +97,7 @@ class SlidingWindow:
 
                 # End if all packets have been acknowledged
                 if self.base() >= self.total_packets:  # Base is 0 indexed
-                    break
+                    return
 
     def send(self, data: bytes, eof_flag: bool) -> bool:
         # Wait until we have gotten acknowledgments

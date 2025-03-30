@@ -79,6 +79,9 @@ class SlidingWindow:
             ack_data = self.sock.recv(2)
             ack_seq_num = struct.unpack("!H", ack_data)[0]
             with self.lock:
+                if self.done:
+                    return
+
                 # Ignore old acknowledgments
                 if ack_seq_num < self.base():
                     continue

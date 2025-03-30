@@ -11,7 +11,14 @@ from utils import log, SequenceNumber, PACKET_SIZE, send_file, HEADER_FORMAT
 
 
 class SlidingWindow:
-    def __init__(self, host: str, port: int, window_size: int, total_packets: int):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        window_size: int,
+        total_packets: int,
+        retry_timeout_s: float,
+    ):
         self.total_packets = total_packets
         self.window_size = window_size
         self.lock = threading.Lock()
@@ -21,6 +28,11 @@ class SlidingWindow:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.connect((host, port))
+        self.done = False
+        # If a single packet needs to be retransmitted more often we assume something is wrong
+        # and stop sending
+        self.max_retransmissions = 50
+        self.retry_timeout_s = retry_timeout_s
 
     def base(self) -> int:
         """
@@ -42,11 +54,24 @@ class SlidingWindow:
                 if self.base() >= self.total_packets:
                     break
 
-                for seq_num, (time_stamp, packet) in self.packets_in_transit.items():
-                    if retry_timeout_s < time.time() - time_stamp:
+                for seq_num, (
+                    time_stamp,
+                    packet,
+                    retry_attempts,
+                ) in self.packets_in_transit.items():
+                    if retry_attempts >= self.max_retransmissions:
+                        log("Max retransmissions reached")
+                        self.done = True
+                        return
+
+                    if self.retry_timeout_s < time.time() - time_stamp:
                         self.sock.sendall(packet)
                         log(f"Resend packet: {seq_num}")
-                        self.packets_in_transit[seq_num] = (time.time(), packet)
+                        self.packets_in_transit[seq_num] = (
+                            time.time(),
+                            packet,
+                            retry_attempts + 1,
+                        )
             time.sleep(0.005)
 
     def handle_acknowledgments(self):
@@ -80,7 +105,7 @@ class SlidingWindow:
             packet = header + data
 
             # Send packet
-            self.packets_in_transit[self.seq_num()] = (time.time(), packet)
+            self.packets_in_transit[self.seq_num()] = (time.time(), packet, 0)
             self.sock.sendall(packet)
             self.seq_num.next()
         return True
@@ -94,7 +119,9 @@ if __name__ == "__main__":
     window_size = int(sys.argv[5])
 
     total_packets = math.ceil(os.path.getsize(filename) / PACKET_SIZE)
-    sender = SlidingWindow(remote_host, port, window_size, total_packets)
+    sender = SlidingWindow(
+        remote_host, port, window_size, total_packets, retry_timeout_s
+    )
 
     ack_thread = threading.Thread(target=sender.handle_acknowledgments)
     resend_thread = threading.Thread(target=sender.resend_timedout_packets)

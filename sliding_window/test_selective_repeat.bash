@@ -29,7 +29,9 @@ for value in "${test_values[@]}"; do
 
         # Wait for both processes to finish
         wait $receiver_pid
+        echo "Receiver finished"
         wait $sender_pid
+        echo "Sender finished"
 
         sleep 0.5
         

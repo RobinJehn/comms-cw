@@ -34,7 +34,7 @@ class GoBackN:
         self.done = False
         self.consecutive_retransmissions = 0
         # When dropping the last ack we need to terminate
-        self.max_retransmissions = 1000
+        self.max_retransmissions = 50
 
     def start_timer(self):
         if self.timer:

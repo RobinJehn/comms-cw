@@ -326,10 +326,6 @@ class Nat(app_manager.OSKenApp):
         ofp, psr, did = (dp.ofproto, dp.ofproto_parser, format(dp.id, "016d"))
         eth = pkt.get_protocols(ethernet.ethernet)[0]
 
-        print(
-            f"Packet in {did} {datetime.datetime.now()} {in_port} {eth.src} -> {eth.dst}"
-        )
-
         # Handle ARP
         if eth.ethertype == ETH_TYPE_ARP:
             ah = pkt.get_protocols(arp.arp)[0]
@@ -369,13 +365,17 @@ class Nat(app_manager.OSKenApp):
             print("Incoming packets should be handled by flows!")
             self._send_rst(dp, in_port, pkt, ip_packet, tcp_packet)
             return
-
         # Automatically adds the entry to the NAT table if it doesn't exist
         public_entry = self.get_public(ip_packet.src, tcp_packet.src_port)
         if public_entry is None:
             print("No available ports")
             self._send_rst(dp, in_port, pkt, ip_packet, tcp_packet)
             return
+
+        print(
+            f"Sending packet from ({ip_packet.src}:{tcp_packet.src_port}, {eth.src}) to ({ip_packet.dst}:{tcp_packet.dst_port}, {eth.dst})"
+            f" with public entry {public_entry}"
+        )
 
         # Install a flow rule so that future packets in this flow are handled directly by the switch.
         target_mac = self.hostmacs[ip_packet.dst]

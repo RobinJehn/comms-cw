@@ -177,9 +177,12 @@ class Nat(app_manager.OSKenApp):
             - A tuple (private_ip, private_port) if the entry exists, None otherwise
         """
 
-        for public_ip_, public_port_, _ in self.nat_table.items():
+        for (private_ip, private_port, _), (
+            public_ip_,
+            public_port_,
+            _,
+        ) in self.nat_table.items():
             if public_ip == public_ip_ and public_port == public_port_:
-                private_ip, private_port, _ = self.nat_table[(public_ip, public_port)]
                 # Update the timestamp
                 self.nat_table[(private_ip, private_port)] = (
                     public_ip,
@@ -197,12 +200,15 @@ class Nat(app_manager.OSKenApp):
         Flow is automatically removed by the idle_timeout
         """
         now = datetime.datetime.now()
-        for k, (public_ip, public_port, timestamp) in self.nat_table.items():
+        key_to_delete = None
+        for k, (_, public_port, timestamp) in self.nat_table.items():
             if (now - timestamp).seconds > self.entry_timeout:
                 self.available_ports.add(public_port)
                 self.used_ports.remove(public_port)
-                del self.nat_table[k]
+                key_to_delete = k
                 break
+        if key_to_delete is not None:
+            del self.nat_table[k]
 
     def _send_packet(self, datapath, port, pkt):
         ofproto = datapath.ofproto
@@ -347,7 +353,7 @@ class Nat(app_manager.OSKenApp):
         ip_packet = pkt.get_protocol(ipv4.ipv4)
         tcp_packet = pkt.get_protocol(tcp.tcp)
         if ip_packet is None or tcp_packet is None:
-            out = self._send_packet(dp, in_port, p)
+            out = self._send_packet(dp, in_port, pkt)
             dp.send_msg(out)
             return
 
@@ -364,6 +370,17 @@ class Nat(app_manager.OSKenApp):
             self._send_rst(dp, in_port, pkt, ip_packet, tcp_packet)
             return
 
+        # Install a flow rule so that future packets in this flow are handled directly by the switch.
+        self.add_flows(
+            dp,
+            ip_packet.src,
+            tcp_packet.src_port,
+            eth.src,
+            ip_packet.dst,
+            tcp_packet.dst_port,
+            target_mac,
+        )
+
         # Do the NAT translation
         ip_packet.src = public_entry[0]
         tcp_packet.src_port = public_entry[1]
@@ -377,17 +394,6 @@ class Nat(app_manager.OSKenApp):
         p.add_protocol(ip_packet)
         p.add_protocol(tcp_packet)
         p.serialize()
-
-        # Install a flow rule so that future packets in this flow are handled directly by the switch.
-        self.add_flows(
-            dp,
-            ip_packet.src,
-            tcp_packet.src_port,
-            eth.src,
-            ip_packet.dst,
-            tcp_packet.dst_port,
-            target_mac,
-        )
 
         out = self._send_packet(dp, in_port, p)
         dp.send_msg(out)

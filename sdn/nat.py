@@ -286,13 +286,12 @@ class Nat(app_manager.OSKenApp):
         parser = datapath.ofproto_parser
 
         # Build a new TCP segment with the RST flag set.
-        # Using the original packet's values for ports and sequence numbers.
         rst_tcp = tcp.tcp(
             src_port=tcp_packet.src_port,
             dst_port=tcp_packet.dst_port,
             seq=tcp_packet.ack,  # Use the ACK as the sequence number
-            ack=tcp_packet.seq + 1,  # Acknowledge the sequenc
-            bits=ofp.TCP_FLAG_RST,  # Set the RST flag
+            ack=tcp_packet.seq + 1,
+            bits=0x04,  # Use 0x04 as the RST flag
             window_size=0,
         )
 

@@ -319,6 +319,9 @@ class Nat(app_manager.OSKenApp):
         ofp, psr, did = (dp.ofproto, dp.ofproto_parser, format(dp.id, "016d"))
         eth = pkt.get_protocols(ethernet.ethernet)[0]
 
+        # Print the packet for debugging purposes
+        print("Packet In:", pkt)
+
         # Handle ARP
         if eth.ethertype == ETH_TYPE_ARP:
             ah = pkt.get_protocols(arp.arp)[0]

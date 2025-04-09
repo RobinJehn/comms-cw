@@ -69,6 +69,7 @@ class Nat(app_manager.OSKenApp):
             - public_port: The public port of the source
             - target_mac: The public MAC address of the switch
         """
+        print(f"Adding flows for NAT entry: {private_ip}:{private_port} -> {public_ip}:{public_port}")
         ofp = datapath.ofproto
         psr = datapath.ofproto_parser
 
@@ -395,5 +396,6 @@ class Nat(app_manager.OSKenApp):
         p.add_protocol(tcp_packet)
         p.serialize()
 
+        print("Outgoing packet", p)
         out = self._send_packet(dp, in_port, p)
         dp.send_msg(out)

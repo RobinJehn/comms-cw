@@ -63,12 +63,13 @@ class Nat(app_manager.OSKenApp):
         and forward the packet.
         Parameters:
             - datapath: The switch to which the rule should be added
-            - private_ip: The private IP address of the source
-            - private_port: The private port of the source
-            - private_mac: The private MAC address of the source
-            - public_ip: The public IP address of the source
-            - public_port: The public port of the source
-            - target_mac: The public MAC address of the switch
+            - private_ip: The private IP address of the private host
+            - private_port: The private port of the sourprivate hostce
+            - private_mac: The private MAC address of the private host
+            - public_ip: The public IP address of the private host
+            - public_port: The public port of the private host
+            - target_mac: The MAC address of the public host
+            - in_port: The input port of the switch
         """
         print(
             f"Adding flows for NAT entry: {private_ip}:{private_port} -> {public_ip}:{public_port}"
@@ -389,8 +390,8 @@ class Nat(app_manager.OSKenApp):
             ip_packet.src,
             tcp_packet.src_port,
             eth.src,
-            ip_packet.dst,
-            tcp_packet.dst_port,
+            public_entry[0],
+            public_entry[1],
             target_mac,
             in_port,
         )

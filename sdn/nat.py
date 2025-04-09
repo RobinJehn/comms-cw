@@ -69,7 +69,9 @@ class Nat(app_manager.OSKenApp):
             - public_port: The public port of the source
             - target_mac: The public MAC address of the switch
         """
-        print(f"Adding flows for NAT entry: {private_ip}:{private_port} -> {public_ip}:{public_port}")
+        print(
+            f"Adding flows for NAT entry: {private_ip}:{private_port} -> {public_ip}:{public_port}"
+        )
         ofp = datapath.ofproto
         psr = datapath.ofproto_parser
 
@@ -323,6 +325,10 @@ class Nat(app_manager.OSKenApp):
         dp = msg.datapath
         ofp, psr, did = (dp.ofproto, dp.ofproto_parser, format(dp.id, "016d"))
         eth = pkt.get_protocols(ethernet.ethernet)[0]
+
+        print(
+            f"Packet in {did} {datetime.datetime.now()} {in_port} {eth.src} -> {eth.dst}"
+        )
 
         # Handle ARP
         if eth.ethertype == ETH_TYPE_ARP:

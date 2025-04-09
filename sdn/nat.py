@@ -208,7 +208,7 @@ class Nat(app_manager.OSKenApp):
                 key_to_delete = k
                 break
         if key_to_delete is not None:
-            del self.nat_table[k]
+            del self.nat_table[key_to_delete]
 
     def _send_packet(self, datapath, port, pkt):
         ofproto = datapath.ofproto
@@ -371,6 +371,7 @@ class Nat(app_manager.OSKenApp):
             return
 
         # Install a flow rule so that future packets in this flow are handled directly by the switch.
+        target_mac = self.hostmacs[ip_packet.dst]
         self.add_flows(
             dp,
             ip_packet.src,
@@ -385,7 +386,6 @@ class Nat(app_manager.OSKenApp):
         ip_packet.src = public_entry[0]
         tcp_packet.src_port = public_entry[1]
         eth.src = self.emac
-        target_mac = self.hostmacs[ip_packet.dst]
         eth.dst = target_mac
 
         # Create a new packet with the updated IP and TCP headers

@@ -319,9 +319,6 @@ class Nat(app_manager.OSKenApp):
         ofp, psr, did = (dp.ofproto, dp.ofproto_parser, format(dp.id, "016d"))
         eth = pkt.get_protocols(ethernet.ethernet)[0]
 
-        # Print the packet for debugging purposes
-        print("Packet In:", pkt)
-
         # Handle ARP
         if eth.ethertype == ETH_TYPE_ARP:
             ah = pkt.get_protocols(arp.arp)[0]
@@ -352,7 +349,8 @@ class Nat(app_manager.OSKenApp):
         ip_packet = pkt.get_protocol(ipv4.ipv4)
         tcp_packet = pkt.get_protocol(tcp.tcp)
         if ip_packet is None or tcp_packet is None:
-            print("Not an IP packet or not a TCP packet")
+            out = self._send_packet(dp, in_port, p)
+            dp.send_msg(out)
             return
 
         # We only add new rules on outgoing packets, incoming ones should be handled by a flow
@@ -383,7 +381,15 @@ class Nat(app_manager.OSKenApp):
         p.serialize()
 
         # Install a flow rule so that future packets in this flow are handled directly by the switch.
-        self.add_flows(dp, ip_packet.src, tcp_packet.src_port, eth.src, ip_packet.dst, tcp_packet.dst_port, target_mac)
+        self.add_flows(
+            dp,
+            ip_packet.src,
+            tcp_packet.src_port,
+            eth.src,
+            ip_packet.dst,
+            tcp_packet.dst_port,
+            target_mac,
+        )
 
         out = self._send_packet(dp, in_port, p)
         dp.send_msg(out)

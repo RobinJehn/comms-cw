@@ -10,8 +10,6 @@ test_nat.py – A test harness to exercise the marking criteria:
 Before running, make sure your NAT controller (nat.py) is running via:
     osken-manager nat.py
 
-And that your Mininet VM has the Python Mininet API installed.
-
 Usage:
     sudo python3 test_nat.py
 """
@@ -38,11 +36,11 @@ def test_single_connection(net):
     # Start a capture on h1 (optional for later inspection)
     h1.cmd("tcpdump -w /tmp/h1.pcap &")
     time.sleep(1)
-    # Start a netcat listener on h1 on port 50000
+    # Start a netcat listener on h1 on port 50000 (no timeout on the listener)
     h1.cmd("netcat -l 50000 &")
     time.sleep(1)
-    # Initiate connection from h2 with -q 1 so it terminates automatically.
-    result = h2.cmd("echo 'Hello NAT' | netcat -q 1 10.0.1.100 50000")
+    # Initiate connection from h2. Wrap the netcat call with timeout to force termination.
+    result = h2.cmd("echo 'Hello NAT' | timeout 5 netcat 10.0.1.100 50000")
     info("Single connection result: " + result + "\n")
     time.sleep(1)
     # Clean up processes
@@ -60,15 +58,15 @@ def test_port_reuse(net):
     info("\n*** Starting port reuse test ***\n")
     h1 = net.get("h1")
     h2 = net.get("h2")
-    # Start a listener on h1 and connect from h2 using netcat with -q 1
+    # Start a listener on h1 (without timeout) and connect from h2 (with timeout)
     h1.cmd("nc -l 50000 &")
     time.sleep(1)
-    h2.cmd("echo 'First connection' | nc -q 1 10.0.1.100 50000")
+    h2.cmd("echo 'First connection' | timeout 5 nc 10.0.1.100 50000")
     # Wait longer than the NAT entry timeout (assumed to be 10 sec)
     info("Waiting for NAT entry to expire...\n")
     time.sleep(12)
     # Initiate a new connection from h2
-    result = h2.cmd("echo 'Second connection' | nc -q 1 10.0.1.100 50000")
+    result = h2.cmd("echo 'Second connection' | timeout 5 nc 10.0.1.100 50000")
     info("Second connection result: " + result + "\n")
     # Clean up processes
     h1.cmd("pkill nc")
@@ -79,8 +77,8 @@ def test_port_reuse(net):
 def test_rst_on_table_full(net):
     """
     Test that if the NAT table is full, a new connection triggers a TCP RST (Criterion 3).
-    For testing, assume you have adjusted your NAT controller to restrict the available port pool to a small number
-    (for example, 3 ports). This test will attempt to saturate the NAT table and then add an extra connection.
+    For testing, assume you have adjusted your NAT controller to restrict the available port pool to a small number,
+    for example, 3 ports. This test will attempt to saturate the NAT table and then add an extra connection.
     """
     info("\n*** Starting RST test (simulate NAT table full) ***\n")
     h1 = net.get("h1")
@@ -92,7 +90,9 @@ def test_rst_on_table_full(net):
         info("Starting connection " + str(conn_id) + "\n")
         h1.cmd("nc -l 50000 &")
         time.sleep(0.5)
-        out = h2.cmd("echo 'Connection {}' | nc -q 1 10.0.1.100 50000".format(conn_id))
+        out = h2.cmd(
+            "echo 'Connection {}' | timeout 5 nc 10.0.1.100 50000".format(conn_id)
+        )
         info("Connection {} result: {}\n".format(conn_id, out))
         h1.cmd("pkill nc")
 
@@ -107,7 +107,7 @@ def test_rst_on_table_full(net):
         t.join()
 
     info("Now attempting one extra connection which should trigger a RST\n")
-    extra_result = h2.cmd("echo 'Extra connection' | nc -q 1 10.0.1.100 50000")
+    extra_result = h2.cmd("echo 'Extra connection' | timeout 5 nc 10.0.1.100 50000")
     info("Extra connection result (expected to be rejected): " + extra_result + "\n")
     info("*** RST test completed ***\n")
 
@@ -127,7 +127,9 @@ def test_mass_connections(net):
         h1.cmd("nc -l 50000 &")
         time.sleep(0.05)
         out = h2.cmd(
-            "echo 'Mass test connection {}' | nc -q 1 10.0.1.100 50000".format(conn_id)
+            "echo 'Mass test connection {}' | timeout 5 nc 10.0.1.100 50000".format(
+                conn_id
+            )
         )
         info("Mass connection {} result: {}\n".format(conn_id, out))
         h1.cmd("pkill nc")

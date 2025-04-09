@@ -214,6 +214,7 @@ class Nat(app_manager.OSKenApp):
             if (now - timestamp).seconds > self.entry_timeout:
                 self.available_ports.add(public_port)
                 self.used_ports.remove(public_port)
+                print(f"Removing expired entry: {k}, port {public_port} is now free")
                 key_to_delete = k
                 break
         if key_to_delete is not None:

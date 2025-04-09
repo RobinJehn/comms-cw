@@ -36,39 +36,175 @@ class Nat(app_manager.OSKenApp):
         self.used_ports = set()
 
         # (private_ip, private_port) -> (public_ip, public_port, timestamp)
+        # The timestamp says when the entry was last used
         self.nat_table = {}
 
         # 122 recommended, but 10 for this coursework
         self.entry_timeout = 10
 
-    def _remove_one_expired_entry(self, datapath):
-        """Remove one expired entry from the NAT table"""
+        # The public IP address of the NAT device
+        self.public_ip = "10.0.1.2"
+
+    def add_flows(
+        self,
+        datapath,
+        private_ip,
+        private_port,
+        private_mac,
+        public_ip,
+        public_port,
+        target_mac,
+    ):
+        """
+        This should only be called when we add a new entry to the NAT table.
+        src will be in the private network and target will be in the public network.
+        We add a flow for both directions. The flow needs to update the ip and port to reflect the NAT translation
+        and forward the packet.
+        Parameters:
+            - datapath: The switch to which the rule should be added
+            - private_ip: The private IP address of the source
+            - private_port: The private port of the source
+            - private_mac: The private MAC address of the source
+            - public_ip: The public IP address of the source
+            - public_port: The public port of the source
+            - target_mac: The public MAC address of the switch
+        """
+        ofp = datapath.ofproto
+        psr = datapath.ofproto_parser
+
+        # Outgoing flow
+        match_out = psr.OFPMatch(
+            ip_proto=in_proto.IPPROTO_TCP,  # TCP protocol
+            ipv4_src=private_ip,
+            tcp_src=private_port,
+        )
+
+        actions_out = [
+            psr.OFPActionSetField(ipv4_src=public_ip),
+            psr.OFPActionSetField(tcp_src=public_port),
+            psr.OFPActionSetField(eth_src=self.emac),
+            psr.OFPActionSetField(eth_dst=target_mac),
+            psr.OFPActionOutput(ofp.OFPP_NORMAL),
+        ]
+        self.add_flow(datapath, 1, match_out, actions_out)
+
+        # Incoming flow
+        match_in = psr.OFPMatch(
+            ip_proto=in_proto.IPPROTO_TCP,  # TCP protocol
+            ipv4_dst=public_ip,
+            tcp_dst=public_port,
+        )
+
+        actions_in = [
+            psr.OFPActionSetField(ipv4_dst=private_ip),
+            psr.OFPActionSetField(tcp_dst=private_port),
+            psr.OFPActionSetField(eth_src=self.lmac),
+            psr.OFPActionSetField(eth_dst=private_mac),
+            psr.OFPActionOutput(ofp.OFPP_NORMAL),
+        ]
+        self.add_flow(datapath, 1, match_in, actions_in)
+
+    def add_entry(self, private_ip, private_port) -> bool:
+        """
+        Add a new entry to the NAT table.
+
+        Parameters:
+            - private_ip: The private IP address
+            - private_port: The private port
+        Returns:
+            - True if the entry was added successfully, False otherwise
+        """
+        if len(self.available_ports) == 0:
+            # No available ports
+            return False
+        if (private_ip, private_port) in self.nat_table:
+            # Entry already exists
+            return False
+
+        public_port = self.available_ports.pop()
+        self.used_ports.add(public_port)
+
+        self.nat_table[(private_ip, private_port)] = (
+            self.public_ip,
+            public_port,
+            datetime.datetime.now(),
+        )
+        self.used_ports.add(public_port)
+        self.available_ports.remove(public_port)
+
+        return True
+
+    def get_public(self, private_ip, private_port) -> tuple[str, int] | None:
+        """
+        Get the public IP and port for a given private IP and port. If no entry exists, create a new one.
+        If we cannot add a new entry, return None.
+        Updates the timestamp of the entry if it exists.
+        Parameters:
+            - private_ip: The private IP address
+            - private_port: The private port
+        Returns:
+            - A tuple (public_ip, public_port) if the entry exists, None otherwise
+        """
+        # If we already have an entry return it
+        if (private_ip, private_port) in self.nat_table:
+            (public_ip, public_port, _) = self.nat_table[(private_ip, private_port)]
+            # Update the timestamp
+            self.nat_table[(private_ip, private_port)] = (
+                public_ip,
+                public_port,
+                datetime.datetime.now(),
+            )
+            return public_ip, public_port
+
+        # If the entry doesn't exist, create a new one
+        self._remove_one_expired_entry()
+        success = self.add_entry(private_ip, private_port)
+        if not success:
+            return None
+
+        # Return the public IP and port.
+        assert (private_ip, private_port) in self.nat_table
+        public_ip, public_port, _ = self.nat_table[(private_ip, private_port)]
+        return public_ip, public_port
+
+    def get_private(self, public_ip, public_port) -> tuple[str, int] | None:
+        """
+        Get the private IP and port for a given public IP and port.
+        If no entry exists, return None.
+        Updates the timestamp of the entry if it exists.
+        Parameters:
+            - public_ip: The public IP address
+            - public_port: The public port
+        Returns:
+            - A tuple (private_ip, private_port) if the entry exists, None otherwise
+        """
+
+        for public_ip_, public_port_, _ in self.nat_table.items():
+            if public_ip == public_ip_ and public_port == public_port_:
+                private_ip, private_port, _ = self.nat_table[(public_ip, public_port)]
+                # Update the timestamp
+                self.nat_table[(private_ip, private_port)] = (
+                    public_ip,
+                    public_port,
+                    datetime.datetime.now(),
+                )
+                return private_ip, private_port
+
+        return None
+
+    def _remove_one_expired_entry(self):
+        """
+        Remove one expired entry from the NAT table.
+
+        Flow is automatically removed by the idle_timeout
+        """
         now = datetime.datetime.now()
         for k, (public_ip, public_port, timestamp) in self.nat_table.items():
             if (now - timestamp).seconds > self.entry_timeout:
                 self.available_ports.add(public_port)
                 self.used_ports.remove(public_port)
                 del self.nat_table[k]
-
-                # Construct a match corresponding to the NAT-translated flow.
-                match = self.dp.ofproto_parser.OFPMatch(
-                    eth_type=0x0800,  # IPv4
-                    ipv4_src=public_ip,  # NAT-translated source IP
-                    ip_proto=6,  # TCP protocol
-                    tcp_src=public_port,  # NAT-translated source port
-                )
-                # Call add_flow with delete=True to remove the flow.
-                self.add_flow(self.dp, prio=1, match=match, acts=[], delete=True)
-
                 break
-        # TODO: Remove flow
-
-    def _get_port(self) -> int | None:
-        if len(self.available_ports) == 0:
-            return None
-        port = self.available_ports.pop()
-        self.used_ports.add(port)
-        return port
 
     def _send_packet(self, datapath, port, pkt):
         ofproto = datapath.ofproto
@@ -124,6 +260,7 @@ class Nat(app_manager.OSKenApp):
                 priority=prio,
                 match=match,
                 instructions=ins,
+                idle_timeout=self.entry_timeout,
             )
         # Let the datapath know about the flow modification
         datapath.send_msg(mod)
@@ -215,47 +352,25 @@ class Nat(app_manager.OSKenApp):
             print("Not an IP packet or not a TCP packet")
             return
 
-        # Outgoing packets are expected to be from "10.0.2.0/24"
-        outgoing = ip_packet.src.startswith("10.0.2.")
-        if outgoing:
-            # Create/update the NAT entry
-            private_entry = (ip_packet.src, tcp_packet.src_port)
-            public_entry = self.nat_table.get(private_entry)
-            if public_entry is None:
-                self._remove_one_expired_entry()
-                public_port = self._get_port()
-                if public_port is None:
-                    print("No available ports")
-                    self._send_rst(dp, in_port, pkt, ip_packet, tcp_packet)
-                    return
-                public_entry = (ip_packet.dst, public_port, datetime.datetime.now())
-                self.nat_table[private_entry] = public_entry
-            else:
-                # Extend the lifetime of the entry
-                self.nat_table[private_entry] = (
-                    public_entry[0],
-                    public_entry[1],
-                    datetime.datetime.now(),
-                )
+        # We only add new rules on outgoing packets, incoming ones should be handled by a flow
+        if not ip_packet.src.startswith("10.0.2."):
+            print("Incoming packets should be handled by flows!")
+            self._send_rst(dp, in_port, pkt, ip_packet, tcp_packet)
+            return
 
-            # Do the NAT translation
-            ip_packet.src = public_entry[0]
-            tcp_packet.src_port = public_entry[1]
-            eth.src = self.emac
-        else:  # Incoming packet
-            for (private_ip, private_port), (
-                public_ip,
-                public_port,
-                _,
-            ) in self.nat_table.items():
-                if public_ip == ip_packet.dst and public_port == tcp_packet.dst_port:
-                    ip_packet.dst = private_ip
-                    tcp_packet.dst_port = private_port
-            eth.src = self.lmac
+        # Automatically adds the entry to the NAT table if it doesn't exist
+        public_entry = self.get_public(ip_packet.src, tcp_packet.src_port)
+        if public_entry is None:
+            print("No available ports")
+            self._send_rst(dp, in_port, pkt, ip_packet, tcp_packet)
+            return
 
-        # Update the destination MAC address
-        if ip_packet.dst in self.hostmacs:
-            eth.dst = self.hostmacs[ip_packet.dst]
+        # Do the NAT translation
+        ip_packet.src = public_entry[0]
+        tcp_packet.src_port = public_entry[1]
+        eth.src = self.emac
+        target_mac = self.hostmacs[ip_packet.dst]
+        eth.dst = target_mac
 
         # Create a new packet with the updated IP and TCP headers
         p = packet.Packet()
@@ -265,29 +380,7 @@ class Nat(app_manager.OSKenApp):
         p.serialize()
 
         # Install a flow rule so that future packets in this flow are handled directly by the switch.
-        # TODO: Do I need to add this for the original ip's or the translated ip's?
-        match = psr.OFPMatch(
-            in_port=in_port,
-            eth_type=0x0800,  # ipv4
-            ipv4_src=ip_packet.src,
-            ipv4_dst=ip_packet.dst,
-            ip_proto=ip_packet.proto,  # TCP
-            tcp_src=tcp_packet.src_port,
-            tcp_dst=tcp_packet.dst_port,
-        )
-        actions = [
-            psr.OFPActionSetField(ipv4_src=public_ip),
-            psr.OFPActionSetField(tcp_src=public_port),
-            psr.OFPActionOutput(ofp.OFPP_NORMAL),
-        ]
-        self.add_flow(dp, 1, match, actions)
+        self.add_flows(dp, ip_packet.src, tcp_packet.src_port, eth.src, ip_packet.dst, tcp_packet.dst_port, target_mac)
 
-        # We ignore any buffered packets and send the new packet directly to the switch
-        out = psr.OFPPacketOut(
-            datapath=dp,
-            buffer_id=ofp.OFP_NO_BUFFER,  # Force using the new packet
-            in_port=in_port,
-            actions=actions,
-            data=p.data,
-        )
+        out = self._send_packet(dp, in_port, p)
         dp.send_msg(out)

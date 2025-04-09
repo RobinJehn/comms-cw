@@ -96,6 +96,8 @@ class Nat(app_manager.OSKenApp):
 
         # Incoming flow
         match_in = psr.OFPMatch(
+            in_port=1, # Public network port
+            eth_type=0x0800,
             ip_proto=in_proto.IPPROTO_TCP,  # TCP protocol
             ipv4_dst=public_ip,
             tcp_dst=public_port,

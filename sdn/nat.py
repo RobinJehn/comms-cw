@@ -129,8 +129,6 @@ class Nat(app_manager.OSKenApp):
             public_port,
             datetime.datetime.now(),
         )
-        self.used_ports.add(public_port)
-        self.available_ports.remove(public_port)
 
         return True
 

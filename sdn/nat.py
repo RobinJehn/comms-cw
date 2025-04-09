@@ -54,6 +54,7 @@ class Nat(app_manager.OSKenApp):
         public_ip,
         public_port,
         target_mac,
+        in_port,
     ):
         """
         This should only be called when we add a new entry to the NAT table.
@@ -77,6 +78,8 @@ class Nat(app_manager.OSKenApp):
 
         # Outgoing flow
         match_out = psr.OFPMatch(
+            in_port=in_port,
+            eth_type=0x0800,
             ip_proto=in_proto.IPPROTO_TCP,  # TCP protocol
             ipv4_src=private_ip,
             tcp_src=private_port,
@@ -387,6 +390,7 @@ class Nat(app_manager.OSKenApp):
             ip_packet.dst,
             tcp_packet.dst_port,
             target_mac,
+            in_port,
         )
 
         # Do the NAT translation
